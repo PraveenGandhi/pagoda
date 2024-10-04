@@ -1,2 +1,5 @@
 .idea
 dbs
+.build
+pkg/db/sqlc
+tmp

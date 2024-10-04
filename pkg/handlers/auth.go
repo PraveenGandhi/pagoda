@@ -2,13 +2,10 @@ package handlers
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
-	"github.com/mikestefanello/pagoda/ent"
-	"github.com/mikestefanello/pagoda/ent/user"
 	"github.com/mikestefanello/pagoda/pkg/context"
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"github.com/mikestefanello/pagoda/pkg/form"
 	"github.com/mikestefanello/pagoda/pkg/helpers"
 	"github.com/mikestefanello/pagoda/pkg/log"
@@ -36,9 +33,9 @@ const (
 
 type (
 	Auth struct {
-		auth *services.AuthClient
-		mail *services.MailClient
-		orm  *ent.Client
+		auth    *services.AuthClient
+		mail    *services.MailClient
+		queries *sqlc.Queries
 		*services.TemplateRenderer
 	}
 )
@@ -49,7 +46,7 @@ func init() {
 
 func (h *Auth) Init(c *services.Container) error {
 	h.TemplateRenderer = c.TemplateRenderer
-	h.orm = c.ORM
+	h.queries = c.Queries
 	h.auth = c.Auth
 	h.mail = c.Mail
 	return nil
@@ -68,7 +65,7 @@ func (h *Auth) Routes(g *echo.Group) {
 	noAuth.POST("/password", h.ForgotPasswordSubmit).Name = routeNameForgotPasswordSubmit
 
 	resetGroup := noAuth.Group("/password/reset",
-		middleware.LoadUser(h.orm),
+		middleware.LoadUser(h.queries),
 		middleware.LoadValidPasswordToken(h.auth),
 	)
 	resetGroup.GET("/token/:user/:password_token/:token", h.ResetPasswordPage).Name = routeNameResetPassword
@@ -93,6 +90,11 @@ func (h *Auth) ForgotPasswordSubmit(ctx echo.Context) error {
 		return h.ForgotPasswordPage(ctx)
 	}
 
+	failed := func(message string) error {
+		msg.Warning(ctx, message)
+		return h.ForgotPasswordPage(ctx)
+	}
+
 	err := form.Submit(ctx, &input)
 
 	switch err.(type) {
@@ -104,17 +106,15 @@ func (h *Auth) ForgotPasswordSubmit(ctx echo.Context) error {
 	}
 
 	// Attempt to load the user
-	u, err := h.orm.User.
-		Query().
-		Where(user.Email(strings.ToLower(input.Email))).
-		Only(ctx.Request().Context())
+	u, err := h.queries.Auth_GetUserByEmail(ctx.Request().Context(), input.Email)
 
 	switch err.(type) {
-	case *ent.NotFoundError:
-		return succeed()
 	case nil:
 	default:
-		return fail(err, "error querying user during forgot password")
+		if err.Error() == "sql: no rows in result set" {
+			return failed("User not found with email " + input.Email)
+		}
+		return failed(err.Error())
 	}
 
 	// Generate the token
@@ -173,16 +173,13 @@ func (h *Auth) LoginSubmit(ctx echo.Context) error {
 	}
 
 	// Attempt to load the user
-	u, err := h.orm.User.
-		Query().
-		Where(user.Email(strings.ToLower(input.Email))).
-		Only(ctx.Request().Context())
-
+	u, err := h.queries.Auth_GetUserByEmail(ctx.Request().Context(), input.Email)
 	switch err.(type) {
-	case *ent.NotFoundError:
-		return authFailed()
 	case nil:
 	default:
+		if err.Error() == "sql: no rows in result set" {
+			return authFailed()
+		}
 		return fail(err, "error querying user during login")
 	}
 
@@ -245,12 +242,11 @@ func (h *Auth) RegisterSubmit(ctx echo.Context) error {
 	}
 
 	// Attempt creating the user
-	u, err := h.orm.User.
-		Create().
-		SetName(input.Name).
-		SetEmail(input.Email).
-		SetPassword(pwHash).
-		Save(ctx.Request().Context())
+	u, err := h.queries.Auth_SaveUser(ctx.Request().Context(), sqlc.Auth_SaveUserParams{
+		Name:     input.Name,
+		Email:    input.Email,
+		Password: pwHash,
+	})
 
 	switch err.(type) {
 	case nil:
@@ -258,12 +254,13 @@ func (h *Auth) RegisterSubmit(ctx echo.Context) error {
 			"user_name", u.Name,
 			"user_id", u.ID,
 		)
-	case *ent.ConstraintError:
-		msg.Warning(ctx, "A user with this email address already exists. Please log in.")
-		return redirect.New(ctx).
-			Route(routeNameLogin).
-			Go()
 	default:
+		if err.Error() == "UNIQUE constraint failed: users.email" {
+			msg.Warning(ctx, "A user with this email address already exists. Please log in.")
+			return redirect.New(ctx).
+				Route(routeNameLogin).
+				Go()
+		}
 		return fail(err, "unable to create user")
 	}
 
@@ -283,14 +280,14 @@ func (h *Auth) RegisterSubmit(ctx echo.Context) error {
 	msg.Success(ctx, "Your account has been created. You are now logged in.")
 
 	// Send the verification email
-	h.sendVerificationEmail(ctx, u)
+	h.sendVerificationEmail(ctx, &u)
 
 	return redirect.New(ctx).
 		Route(routeNameHome).
 		Go()
 }
 
-func (h *Auth) sendVerificationEmail(ctx echo.Context, usr *ent.User) {
+func (h *Auth) sendVerificationEmail(ctx echo.Context, usr *sqlc.User) {
 	// Generate a token
 	token, err := h.auth.GenerateEmailVerificationToken(usr.Email)
 	if err != nil {
@@ -350,13 +347,13 @@ func (h *Auth) ResetPasswordSubmit(ctx echo.Context) error {
 	}
 
 	// Get the requesting user
-	usr := ctx.Get(context.UserKey).(*ent.User)
+	usr := ctx.Get(context.UserKey).(*sqlc.User)
 
 	// Update the user
-	_, err = usr.
-		Update().
-		SetPassword(hash).
-		Save(ctx.Request().Context())
+	_, err = h.queries.Auth_UpdatePassword(ctx.Request().Context(), sqlc.Auth_UpdatePasswordParams{
+		Password: hash,
+		ID:       usr.ID,
+	})
 
 	if err != nil {
 		return fail(err, "unable to update password")
@@ -375,7 +372,7 @@ func (h *Auth) ResetPasswordSubmit(ctx echo.Context) error {
 }
 
 func (h *Auth) VerifyEmail(ctx echo.Context) error {
-	var usr *ent.User
+	var usr sqlc.User
 
 	// Validate the token
 	token := ctx.Param("token")
@@ -389,31 +386,25 @@ func (h *Auth) VerifyEmail(ctx echo.Context) error {
 
 	// Check if it matches the authenticated user
 	if u := ctx.Get(context.AuthenticatedUserKey); u != nil {
-		authUser := u.(*ent.User)
+		authUser := u.(sqlc.User)
 
 		if authUser.Email == email {
 			usr = authUser
 		}
 	}
+	/*
+		// Query to find a matching user, if needed
+		if usr == nil {
+			usr, err = h.queries.GetUserByEmail(ctx.Request().Context(), email)
 
-	// Query to find a matching user, if needed
-	if usr == nil {
-		usr, err = h.orm.User.
-			Query().
-			Where(user.Email(email)).
-			Only(ctx.Request().Context())
-
-		if err != nil {
-			return fail(err, "query failed loading email verification token user")
+			if err != nil {
+				return fail(err, "query failed loading email verification token user")
+			}
 		}
-	}
-
+	*/
 	// Verify the user, if needed
 	if !usr.Verified {
-		usr, err = usr.
-			Update().
-			SetVerified(true).
-			Save(ctx.Request().Context())
+		usr, err = h.queries.Auth_MarkUserAsVerified(ctx.Request().Context(), usr.ID)
 
 		if err != nil {
 			return fail(err, "failed to set user as verified")

@@ -75,7 +75,7 @@ func (t *TemplateRenderer) RenderPage(ctx echo.Context, page *page.Page) error {
 	}
 
 	// Cache this page, if caching was enabled
-	t.cachePage(ctx, page, buf)
+	//t.cachePage(ctx, page, buf)
 
 	return ctx.HTMLBlob(ctx.Response().Status, buf.Bytes())
 }

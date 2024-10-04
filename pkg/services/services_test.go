@@ -1,11 +1,11 @@
 package services
 
 import (
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"os"
 	"testing"
 
 	"github.com/mikestefanello/pagoda/config"
-	"github.com/mikestefanello/pagoda/ent"
 	"github.com/mikestefanello/pagoda/pkg/tests"
 
 	"github.com/labstack/echo/v4"
@@ -14,7 +14,7 @@ import (
 var (
 	c   *Container
 	ctx echo.Context
-	usr *ent.User
+	usr *sqlc.User
 )
 
 func TestMain(m *testing.M) {
@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 
 	// Create a test user
 	var err error
-	if usr, err = tests.CreateUser(c.ORM); err != nil {
+	if usr, err = tests.CreateUser(c.Queries); err != nil {
 		panic(err)
 	}
 

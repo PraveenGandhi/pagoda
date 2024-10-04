@@ -1,11 +1,11 @@
 package page
 
 import (
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"net/http"
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/mikestefanello/pagoda/ent"
 	"github.com/mikestefanello/pagoda/pkg/context"
 	"github.com/mikestefanello/pagoda/pkg/msg"
 	"github.com/mikestefanello/pagoda/pkg/tests"
@@ -31,7 +31,7 @@ func TestNew(t *testing.T) {
 	assert.False(t, p.Cache.Enabled)
 
 	ctx, _ = tests.NewContext(e, "/abc?def=123")
-	usr := &ent.User{
+	usr := &sqlc.User{
 		ID: 1,
 	}
 	ctx.Set(context.AuthenticatedUserKey, usr)

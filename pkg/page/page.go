@@ -1,11 +1,11 @@
 package page
 
 import (
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"net/http"
 	"time"
 
 	"github.com/a-h/templ"
-	"github.com/mikestefanello/pagoda/ent"
 	"github.com/mikestefanello/pagoda/pkg/context"
 	"github.com/mikestefanello/pagoda/pkg/htmx"
 	"github.com/mikestefanello/pagoda/pkg/msg"
@@ -46,7 +46,7 @@ type Page struct {
 	IsAuth bool
 
 	// AuthUser stores the authenticated user
-	AuthUser *ent.User
+	AuthUser *sqlc.User
 
 	// StatusCode stores the HTTP status code that will be returned
 	StatusCode int
@@ -128,7 +128,7 @@ func New(ctx echo.Context) *Page {
 
 	if u := ctx.Get(context.AuthenticatedUserKey); u != nil {
 		p.IsAuth = true
-		p.AuthUser = u.(*ent.User)
+		p.AuthUser = u.(*sqlc.User)
 	}
 
 	p.HTMX.Request = htmx.GetRequest(ctx)

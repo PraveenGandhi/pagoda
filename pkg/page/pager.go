@@ -34,7 +34,6 @@ type Pager struct {
 func NewPager(ctx echo.Context, itemsPerPage int) Pager {
 	p := Pager{
 		ItemsPerPage: itemsPerPage,
-		Pages:        1,
 		Page:         1,
 	}
 
@@ -54,7 +53,6 @@ func NewPager(ctx echo.Context, itemsPerPage int) Pager {
 // This should be used rather than setting either items or pages directly.
 func (p *Pager) SetItems(items int) {
 	p.Items = items
-
 	if items > 0 {
 		p.Pages = int(math.Ceil(float64(items) / float64(p.ItemsPerPage)))
 	} else {

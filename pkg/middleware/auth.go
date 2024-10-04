@@ -2,12 +2,11 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"net/http"
 	"strconv"
 
-	"github.com/mikestefanello/pagoda/ent"
 	"github.com/mikestefanello/pagoda/pkg/context"
-	"github.com/mikestefanello/pagoda/pkg/log"
 	"github.com/mikestefanello/pagoda/pkg/msg"
 	"github.com/mikestefanello/pagoda/pkg/services"
 
@@ -20,8 +19,8 @@ func LoadAuthenticatedUser(authClient *services.AuthClient) echo.MiddlewareFunc 
 		return func(c echo.Context) error {
 			u, err := authClient.GetAuthenticatedUser(c)
 			switch err.(type) {
-			case *ent.NotFoundError:
-				log.Ctx(c).Warn("auth user not found")
+			/*case *ent.NotFoundError:
+			log.Ctx(c).Warn("auth user not found")*/
 			case services.NotAuthenticatedError:
 			case nil:
 				c.Set(context.AuthenticatedUserKey, u)
@@ -48,7 +47,7 @@ func LoadValidPasswordToken(authClient *services.AuthClient) echo.MiddlewareFunc
 			if c.Get(context.UserKey) == nil {
 				return echo.NewHTTPError(http.StatusInternalServerError)
 			}
-			usr := c.Get(context.UserKey).(*ent.User)
+			usr := c.Get(context.UserKey).(*sqlc.User)
 
 			// Extract the token ID
 			tokenID, err := strconv.Atoi(c.Param("password_token"))
@@ -60,7 +59,7 @@ func LoadValidPasswordToken(authClient *services.AuthClient) echo.MiddlewareFunc
 			token, err := authClient.GetValidPasswordToken(
 				c,
 				usr.ID,
-				tokenID,
+				int64(tokenID),
 				c.Param("token"),
 			)
 

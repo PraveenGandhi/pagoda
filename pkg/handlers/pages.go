@@ -84,8 +84,8 @@ func (h *Pages) About(ctx echo.Context) error {
 				Body:  `High performance, extensible, minimalist Go web framework. Visit <a href="https://echo.labstack.com/">echo.labstack.com</a> to learn more.`,
 			},
 			{
-				Title: "Ent",
-				Body:  `Simple, yet powerful ORM for modeling and querying data. Visit <a href="https://entgo.io/">entgo.io</a> to learn more.`,
+				Title: "SQLc",
+				Body:  `Simple, yet powerful Library that Compiles SQL to type-safe code, catches failures before they happen. Visit <a href="https://sqlc.dev/">sqlc.dev</a> to learn more.`,
 			},
 		},
 	}

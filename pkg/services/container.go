@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log/slog"
@@ -10,15 +9,11 @@ import (
 
 	"github.com/mikestefanello/backlite"
 
-	entsql "entgo.io/ent/dialect/sql"
 	"github.com/labstack/echo/v4"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mikestefanello/pagoda/config"
-	"github.com/mikestefanello/pagoda/ent"
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"github.com/mikestefanello/pagoda/pkg/log"
-
-	// Require by ent
-	_ "github.com/mikestefanello/pagoda/ent/runtime"
 )
 
 // Container contains all services used by the application and provides an easy way to handle dependency
@@ -39,8 +34,8 @@ type Container struct {
 	// Database stores the connection to the database
 	Database *sql.DB
 
-	// ORM stores a client to the ORM
-	ORM *ent.Client
+	// Queries from SQLc generated go code
+	Queries *sqlc.Queries
 
 	// Mail stores an email sending client
 	Mail *MailClient
@@ -63,7 +58,6 @@ func NewContainer() *Container {
 	c.initWeb()
 	c.initCache()
 	c.initDatabase()
-	c.initORM()
 	c.initAuth()
 	c.initTemplateRenderer()
 	c.initMail()
@@ -74,9 +68,6 @@ func NewContainer() *Container {
 // Shutdown shuts the Container down and disconnects all connections.
 // If the task runner was started, cancel the context to shut it down prior to calling this.
 func (c *Container) Shutdown() error {
-	if err := c.ORM.Close(); err != nil {
-		return err
-	}
 	if err := c.Database.Close(); err != nil {
 		return err
 	}
@@ -141,22 +132,13 @@ func (c *Container) initDatabase() {
 	if err != nil {
 		panic(err)
 	}
-}
 
-// initORM initializes the ORM
-func (c *Container) initORM() {
-	drv := entsql.OpenDB(c.Config.Database.Driver, c.Database)
-	c.ORM = ent.NewClient(ent.Driver(drv))
-
-	// Run the auto migration tool.
-	if err := c.ORM.Schema.Create(context.Background()); err != nil {
-		panic(err)
-	}
+	c.Queries = sqlc.New(c.Database)
 }
 
 // initAuth initializes the authentication client
 func (c *Container) initAuth() {
-	c.Auth = NewAuthClient(c.Config, c.ORM)
+	c.Auth = NewAuthClient(c.Config, c.Queries)
 }
 
 // initTemplateRenderer initializes the template renderer

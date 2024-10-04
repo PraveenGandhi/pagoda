@@ -1,0 +1,12 @@
+version: "2"
+
+sql:
+  - engine: "sqlite"
+    schema: "pkg/db/migration"
+    queries: "pkg/db/query"
+    gen:
+      go:
+        package: "sqlc"
+        out: "pkg/db/sqlc"
+        # sql_package: "pgx/v5"
+        emit_prepared_queries: true

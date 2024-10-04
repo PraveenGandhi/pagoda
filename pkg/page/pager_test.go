@@ -17,7 +17,7 @@ func TestNewPager(t *testing.T) {
 	assert.Equal(t, 10, pgr.ItemsPerPage)
 	assert.Equal(t, 1, pgr.Page)
 	assert.Equal(t, 0, pgr.Items)
-	assert.Equal(t, 1, pgr.Pages)
+	assert.Equal(t, 0, pgr.Pages)
 
 	ctx, _ = tests.NewContext(e, fmt.Sprintf("/abc?%s=%d", PageQueryKey, 2))
 	pgr = NewPager(ctx, 10)

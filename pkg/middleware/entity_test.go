@@ -2,9 +2,9 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"testing"
 
-	"github.com/mikestefanello/pagoda/ent"
 	"github.com/mikestefanello/pagoda/pkg/context"
 	"github.com/mikestefanello/pagoda/pkg/tests"
 
@@ -16,8 +16,8 @@ func TestLoadUser(t *testing.T) {
 	ctx, _ := tests.NewContext(c.Web, "/")
 	ctx.SetParamNames("user")
 	ctx.SetParamValues(fmt.Sprintf("%d", usr.ID))
-	_ = tests.ExecuteMiddleware(ctx, LoadUser(c.ORM))
-	ctxUsr, ok := ctx.Get(context.UserKey).(*ent.User)
+	_ = tests.ExecuteMiddleware(ctx, LoadUser(c.Queries))
+	ctxUsr, ok := ctx.Get(context.UserKey).(*sqlc.User)
 	require.True(t, ok)
 	assert.Equal(t, usr.ID, ctxUsr.ID)
 }

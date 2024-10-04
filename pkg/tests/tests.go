@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mikestefanello/pagoda/ent"
 	"github.com/mikestefanello/pagoda/pkg/session"
 
 	"github.com/stretchr/testify/assert"
@@ -63,12 +63,12 @@ func AssertHTTPErrorCode(t *testing.T, err error, code int) {
 }
 
 // CreateUser creates a random user entity
-func CreateUser(orm *ent.Client) (*ent.User, error) {
+func CreateUser(queries *sqlc.Queries) (*sqlc.User, error) {
 	seed := fmt.Sprintf("%d-%d", time.Now().UnixMilli(), rand.Intn(1000000))
-	return orm.User.
-		Create().
-		SetEmail(fmt.Sprintf("testuser-%s@localhost.localhost", seed)).
-		SetPassword("password").
-		SetName(fmt.Sprintf("Test User %s", seed)).
-		Save(context.Background())
+	user, err := queries.Auth_SaveUser(context.Background(), sqlc.Auth_SaveUserParams{
+		Name:     fmt.Sprintf("Test User %s", seed),
+		Email:    fmt.Sprintf("testuser-%s@localhost.localhost", seed),
+		Password: "password",
+	})
+	return &user, err
 }

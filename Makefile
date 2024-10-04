@@ -9,16 +9,6 @@ templ-gen:
 	templ fmt ./templates
 	templ generate
 
-# Install Ent code-generation module
-.PHONY: ent-install
-ent-install:
-	go get entgo.io/ent/cmd/ent
-
-# Generate Ent code
-.PHONY: ent-gen
-ent-gen:
-	go generate ./ent
-
 # Create a new Ent entity
 .PHONY: ent-new
 ent-new:
@@ -26,9 +16,8 @@ ent-new:
 
 # Run the application
 .PHONY: run
-run: templ-gen
-	clear
-	go run cmd/web/main.go
+run:
+	air
 
 # Run all tests
 .PHONY: test
