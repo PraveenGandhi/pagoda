@@ -2,8 +2,8 @@ package services
 
 import (
 	"errors"
-	"fmt"
 
+	"github.com/a-h/templ"
 	"github.com/mikestefanello/pagoda/config"
 	"github.com/mikestefanello/pagoda/pkg/log"
 
@@ -25,13 +25,12 @@ type (
 
 	// mail represents an email to be sent
 	mail struct {
-		client       *MailClient
-		from         string
-		to           string
-		subject      string
-		body         string
-		template     string
-		templateData any
+		client         *MailClient
+		from           string
+		to             string
+		subject        string
+		body           string
+		templComponent templ.Component
 	}
 )
 
@@ -61,21 +60,17 @@ func (m *MailClient) send(email *mail, ctx echo.Context) error {
 	switch {
 	case email.to == "":
 		return errors.New("email cannot be sent without a to address")
-	case email.body == "" && email.template == "":
+	case email.body == "" && email.templComponent != nil:
 		return errors.New("email cannot be sent without a body or template")
 	}
 
 	// Check if a template was supplied
-	if email.template != "" {
-		// Parse and execute template
-		buf, err := m.templates.
-			Parse().
-			Group("mail").
-			Key(email.template).
-			Base(email.template).
-			Files(fmt.Sprintf("emails/%s", email.template)).
-			Execute(email.templateData)
+	if email.templComponent != nil {
+		buf := templ.GetBuffer()
+		defer templ.ReleaseBuffer(buf)
 
+		// Parse and execute template
+		err := email.templComponent.Render(ctx.Request().Context(), buf)
 		if err != nil {
 			return err
 		}
@@ -125,14 +120,8 @@ func (m *mail) Body(body string) *mail {
 // The template must reside within the emails sub-directory.
 // The funcmap will be automatically added to the template.
 // Use TemplateData() to supply the data that will be passed in to the template.
-func (m *mail) Template(template string) *mail {
-	m.template = template
-	return m
-}
-
-// TemplateData sets the data that will be passed to the template specified when calling Template()
-func (m *mail) TemplateData(data any) *mail {
-	m.templateData = data
+func (m *mail) Template(template templ.Component) *mail {
+	m.templComponent = template
 	return m
 }
 

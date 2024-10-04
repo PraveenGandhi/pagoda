@@ -1,3 +1,14 @@
+# Install templ module
+.PHONY: templ-install
+templ-install:
+	go install github.com/a-h/templ/cmd/templ@latest
+
+# Generate templ
+.PHONY: templ-gen
+templ-gen:
+	templ fmt ./templates
+	templ generate
+
 # Install Ent code-generation module
 .PHONY: ent-install
 ent-install:
@@ -15,7 +26,7 @@ ent-new:
 
 # Run the application
 .PHONY: run
-run:
+run: templ-gen
 	clear
 	go run cmd/web/main.go
 

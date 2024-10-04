@@ -1,0 +1,47 @@
+package pages
+
+import (
+	"fmt"
+	"github.com/mikestefanello/pagoda/pkg/helpers"
+	"github.com/mikestefanello/pagoda/templates/components"
+)
+
+templ Task(form *helpers.TaskForm) {
+	if components.Page(ctx).HTMX.Request.Target != "task" {
+		<article class="message is-link">
+			<div class="message-body">
+				<p>Submitting this form will create an <i>ExampleTask</i> in the task queue. After the specified delay, the message will be logged by the queue processor.</p>
+				<p>See pkg/tasks and the README for more information.</p>
+			</div>
+		</article>
+	}
+	@taskForm(form)
+}
+
+templ taskForm(form *helpers.TaskForm) {
+	<form id="task" method="post" hx-post={ string(components.Funcs(ctx).URL("task.submit")) }>
+		@components.Messages()
+		<div class="field">
+			<label for="delay" class="label">Delay (in seconds)</label>
+			<div class="control">
+				<input type="number" id="delay" name="delay" class={ fmt.Sprintf("input %s", form.GetFieldStatusClass("Delay")) } value={ fmt.Sprintf("%d", form.Delay) }/>
+			</div>
+			<p class="help">How long to wait until the task is executed</p>
+			@components.FieldErrors(form.GetFieldErrors("Delay"))
+		</div>
+		<div class="field">
+			<label for="message" class="label">Message</label>
+			<div class="control">
+				<textarea id="message" name="message" class={ fmt.Sprintf("textarea %s", form.GetFieldStatusClass("Message")) }>{ form.Message }</textarea>
+			</div>
+			<p class="help">The message the task will output to the log</p>
+			@components.FieldErrors(form.GetFieldErrors("Message"))
+		</div>
+		<div class="field is-grouped">
+			<div class="control">
+				<button class="button is-link">Add task to queue</button>
+			</div>
+		</div>
+		@components.CSRF()
+	</form>
+}

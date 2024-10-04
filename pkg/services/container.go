@@ -4,17 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/mikestefanello/backlite"
 	"log/slog"
 	"os"
 	"strings"
+
+	"github.com/mikestefanello/backlite"
 
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/labstack/echo/v4"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mikestefanello/pagoda/config"
 	"github.com/mikestefanello/pagoda/ent"
-	"github.com/mikestefanello/pagoda/pkg/funcmap"
 	"github.com/mikestefanello/pagoda/pkg/log"
 
 	// Require by ent
@@ -161,7 +161,7 @@ func (c *Container) initAuth() {
 
 // initTemplateRenderer initializes the template renderer
 func (c *Container) initTemplateRenderer() {
-	c.TemplateRenderer = NewTemplateRenderer(c.Config, c.Cache, funcmap.NewFuncMap(c.Web))
+	c.TemplateRenderer = NewTemplateRenderer(c.Config, c.Cache, c.Web)
 }
 
 // initMail initialize the mail client

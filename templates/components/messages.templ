@@ -1,0 +1,25 @@
+package components
+
+import "fmt"
+
+templ message(typ string, text string) {
+	<div class={ fmt.Sprintf("notification is-light is-%s", typ) } x-data="{show: true}" x-show="show">
+		<button class="delete" @click="show = false"></button>
+		@templ.Raw(text)
+	</div>
+}
+
+templ Messages() {
+	for _, msg := range Page(ctx).GetMessages("success") {
+		@message("success", msg)
+	}
+	for _, msg := range Page(ctx).GetMessages("info") {
+		@message("info", msg)
+	}
+	for _, msg := range Page(ctx).GetMessages("warning") {
+		@message("warning", msg)
+	}
+	for _, msg := range Page(ctx).GetMessages("danger") {
+		@message("danger", msg)
+	}
+}

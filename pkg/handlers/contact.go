@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"fmt"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/mikestefanello/pagoda/pkg/form"
+	"github.com/mikestefanello/pagoda/pkg/helpers"
 	"github.com/mikestefanello/pagoda/pkg/page"
 	"github.com/mikestefanello/pagoda/pkg/services"
-	"github.com/mikestefanello/pagoda/templates"
+	"github.com/mikestefanello/pagoda/templates/pages"
 )
 
 const (
@@ -19,13 +21,6 @@ type (
 	Contact struct {
 		mail *services.MailClient
 		*services.TemplateRenderer
-	}
-
-	contactForm struct {
-		Email      string `form:"email" validate:"required,email"`
-		Department string `form:"department" validate:"required,oneof=sales marketing hr"`
-		Message    string `form:"message" validate:"required"`
-		form.Submission
 	}
 )
 
@@ -46,16 +41,14 @@ func (h *Contact) Routes(g *echo.Group) {
 
 func (h *Contact) Page(ctx echo.Context) error {
 	p := page.New(ctx)
-	p.Layout = templates.LayoutMain
-	p.Name = templates.PageContact
 	p.Title = "Contact us"
-	p.Form = form.Get[contactForm](ctx)
+	p.TemplComponent = pages.Contact(form.Get[helpers.ContactForm](ctx))
 
 	return h.RenderPage(ctx, p)
 }
 
 func (h *Contact) Submit(ctx echo.Context) error {
-	var input contactForm
+	var input helpers.ContactForm
 
 	err := form.Submit(ctx, &input)
 

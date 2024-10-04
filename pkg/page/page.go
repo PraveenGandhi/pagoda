@@ -1,15 +1,14 @@
 package page
 
 import (
-	"html/template"
 	"net/http"
 	"time"
 
+	"github.com/a-h/templ"
 	"github.com/mikestefanello/pagoda/ent"
 	"github.com/mikestefanello/pagoda/pkg/context"
 	"github.com/mikestefanello/pagoda/pkg/htmx"
 	"github.com/mikestefanello/pagoda/pkg/msg"
-	"github.com/mikestefanello/pagoda/templates"
 
 	echomw "github.com/labstack/echo/v4/middleware"
 
@@ -39,27 +38,6 @@ type Page struct {
 
 	// URL stores the URL of the current request
 	URL string
-
-	// Data stores whatever additional data that needs to be passed to the templates.
-	// This is what the handler uses to pass the content of the page.
-	Data any
-
-	// Form stores a struct that represents a form on the page.
-	// This should be a struct with fields for each form field, using both "form" and "validate" tags
-	// It should also contain form.FormSubmission if you wish to have validation
-	// messages and markup presented to the user
-	Form any
-
-	// Layout stores the name of the layout base template file which will be used when the page is rendered.
-	// This should match a template file located within the layouts directory inside the templates directory.
-	// The template extension should not be included in this value.
-	Layout templates.Layout
-
-	// Name stores the name of the page as well as the name of the template file which will be used to render
-	// the content portion of the layout template.
-	// This should match a template file located within the pages directory inside the templates directory.
-	// The template extension should not be included in this value.
-	Name templates.Page
 
 	// IsHome stores whether the requested page is the home page or not
 	IsHome bool
@@ -120,11 +98,19 @@ type Page struct {
 		// These are useful when invalidating cache for dynamic events such as entity operations.
 		Tags []string
 	}
+
+	// TemplLayout stores the templ function to which TemplComponent will be passed when the page is rendered.
+	// If not set defaults to layouts.Main
+	TemplLayout func(templ.Component) templ.Component
+
+	// TemplComponent stores the templ component which will be used when the page is rendered.
+	// TemplRenderer will raise an error if not set
+	TemplComponent templ.Component
 }
 
 // New creates and initiatizes a new Page for a given request context
-func New(ctx echo.Context) Page {
-	p := Page{
+func New(ctx echo.Context) *Page {
+	p := &Page{
 		Context:    ctx,
 		Path:       ctx.Request().URL.Path,
 		URL:        ctx.Request().URL.String(),
@@ -152,11 +138,6 @@ func New(ctx echo.Context) Page {
 
 // GetMessages gets all flash messages for a given type.
 // This allows for easy access to flash messages from the templates.
-func (p Page) GetMessages(typ msg.Type) []template.HTML {
-	strs := msg.Get(p.Context, typ)
-	ret := make([]template.HTML, len(strs))
-	for k, v := range strs {
-		ret[k] = template.HTML(v)
-	}
-	return ret
+func (p *Page) GetMessages(typ msg.Type) []string {
+	return msg.Get(p.Context, typ)
 }

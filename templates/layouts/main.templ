@@ -1,0 +1,111 @@
+package layouts
+
+import "github.com/mikestefanello/pagoda/templates/components"
+
+templ Main(contents templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en" style="height:100%;">
+		<head>
+			@components.MetaTags()
+			@components.CSS()
+			@components.JS()
+		</head>
+		<body class="has-background-light" style="min-height:100%;">
+			<nav class="navbar is-dark">
+				<div class="container">
+					<div class="navbar-brand" hx-boost="true">
+						<a href={ components.Funcs(ctx).URL("home") } class="navbar-item">{ components.Page(ctx).AppName }</a>
+					</div>
+					<div id="navbarMenu" class="navbar-menu">
+						<div class="navbar-end">
+							@search()
+						</div>
+					</div>
+				</div>
+			</nav>
+			<div class="container mt-5">
+				<div class="columns">
+					<div class="column is-2">
+						<aside class="menu" hx-boost="true">
+							<p class="menu-label">General</p>
+							<ul class="menu-list">
+								<li>
+									@templ.Raw(components.Funcs(ctx).Link("home", "Dashboard", components.Page(ctx).Path))
+								</li>
+								<li>
+									@templ.Raw(components.Funcs(ctx).Link("about", "About", components.Page(ctx).Path))
+								</li>
+								<li>
+									@templ.Raw(components.Funcs(ctx).Link("contact", "Contact", components.Page(ctx).Path))
+								</li>
+								<li>
+									@templ.Raw(components.Funcs(ctx).Link("cache", "Cache", components.Page(ctx).Path))
+								</li>
+								<li>
+									@templ.Raw(components.Funcs(ctx).Link("task", "Task", components.Page(ctx).Path))
+								</li>
+							</ul>
+							<p class="menu-label">Account</p>
+							<ul class="menu-list">
+								if components.Page(ctx).IsAuth {
+									<li>
+										@templ.Raw(components.Funcs(ctx).Link("logout", "Logout", components.Page(ctx).Path))
+									</li>
+								} else {
+									<li>
+										@templ.Raw(components.Funcs(ctx).Link("login", "Login", components.Page(ctx).Path))
+									</li>
+									<li>
+										@templ.Raw(components.Funcs(ctx).Link("register", "Register", components.Page(ctx).Path))
+									</li>
+									<li>
+										@templ.Raw(components.Funcs(ctx).Link("forgot_password", "Forgot password", components.Page(ctx).Path))
+									</li>
+								}
+							</ul>
+						</aside>
+					</div>
+					<div class="column is-10">
+						<div class="box">
+							if components.Page(ctx).Title != "" {
+								<h1 class="title">{ components.Page(ctx).Title }</h1>
+							}
+							@components.Messages()
+							@contents
+						</div>
+					</div>
+				</div>
+			</div>
+			@components.Footer()
+		</body>
+	</html>
+}
+
+templ search() {
+	<div class="search mr-2 mt-1" x-data="{modal:false}">
+		<input class="input" type="search" placeholder="Search..." @click="modal = true; $nextTick(() => $refs.input.focus());"/>
+		<div class="modal" :class="modal ? 'is-active' : ''" x-show="modal == true">
+			<div class="modal-background"></div>
+			<div class="modal-content" @click.outside="modal = false;">
+				<div class="box">
+					<h2 class="subtitle">Search</h2>
+					<p class="control">
+						<input
+							hx-get={ string(components.Funcs(ctx).URL("search")) }
+							hx-trigger="keyup changed delay:500ms"
+							hx-target="#results"
+							name="query"
+							class="input"
+							type="search"
+							placeholder="Search..."
+							x-ref="input"
+						/>
+					</p>
+					<div class="block"></div>
+					<div id="results"></div>
+				</div>
+			</div>
+			<button class="modal-close is-large" aria-label="close"></button>
+		</div>
+	</div>
+}

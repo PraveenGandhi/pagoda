@@ -1,0 +1,95 @@
+package pages
+
+import (
+	"github.com/mikestefanello/pagoda/pkg/helpers"
+	"github.com/mikestefanello/pagoda/templates/components"
+)
+
+templ Home(posts []helpers.Post) {
+	if components.Page(ctx).HTMX.Request.Target != "posts" {
+		@topContent()
+	}
+	@postsContent(posts)
+	if components.Page(ctx).HTMX.Request.Target != "posts" {
+		@fileMsg()
+	}
+}
+
+templ topContent() {
+	<section class="hero is-info welcome is-small">
+		<div class="hero-body">
+			<div class="container">
+				<h1 class="title">
+					if components.Page(ctx).IsAuth {
+						Hello { components.Page(ctx).AuthUser.Name },
+					} else {
+						Hello
+					}
+				</h1>
+				<h2 class="subtitle">
+					if components.Page(ctx).IsAuth {
+						Welcome back!
+					} else {
+						Please login in to your account.
+					}
+				</h2>
+			</div>
+		</div>
+	</section>
+	<section class="section">
+		<h1 class="title">Recent posts</h1>
+		<h2 class="subtitle">
+			Below is an example of both paging and AJAX fetching using HTMX
+		</h2>
+	</section>
+}
+
+templ postsContent(posts []helpers.Post) {
+	<div id="posts">
+		for _, post := range posts {
+			<article class="media">
+				<figure class="media-left">
+					<p class="image is-64x64">
+						<img src={ components.Funcs(ctx).File("gopher.png") } alt="Gopher"/>
+					</p>
+				</figure>
+				<div class="media-content">
+					<div class="content">
+						<p>
+							<strong>{ post.Title }</strong>
+							<br/>
+							{ post.Body }
+						</p>
+					</div>
+				</div>
+			</article>
+		}
+		<div class="field is-grouped is-grouped-centered">
+			if !components.Page(ctx).Pager.IsBeginning() {
+				<p class="control">
+					<button class="button is-primary" hx-swap="outerHTML" hx-get={ components.PreviousPageLink(ctx) } hx-target="#posts">Previous page</button>
+				</p>
+			}
+			if !components.Page(ctx).Pager.IsEnd() {
+				<p class="control">
+					<button class="button is-primary" hx-swap="outerHTML" hx-get={ components.NextPageLink(ctx) } hx-target="#posts">Next page</button>
+				</p>
+			}
+		</div>
+	</div>
+}
+
+templ fileMsg() {
+	<div class="block"></div>
+	<article class="message is-small is-warning" x-data="{show: true}" x-show="show">
+		<div class="message-header">
+			<p>Serving files</p>
+			<button class="delete is-small" aria-label="delete" @click="show = false"></button>
+		</div>
+		<div class="message-body">
+			In the example posts above, check how the file URL contains a cache-buster query parameter which changes only when the app is restarted.
+			Static files also contain cache-control headers which are configured via middleware.
+			You can also use AlpineJS to dismiss this message.
+		</div>
+	</article>
+}

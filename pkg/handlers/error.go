@@ -8,7 +8,7 @@ import (
 	"github.com/mikestefanello/pagoda/pkg/log"
 	"github.com/mikestefanello/pagoda/pkg/page"
 	"github.com/mikestefanello/pagoda/pkg/services"
-	"github.com/mikestefanello/pagoda/templates"
+	"github.com/mikestefanello/pagoda/templates/pages"
 )
 
 type Error struct {
@@ -37,11 +37,10 @@ func (e *Error) Page(err error, ctx echo.Context) {
 
 	// Render the error page
 	p := page.New(ctx)
-	p.Layout = templates.LayoutMain
-	p.Name = templates.PageError
 	p.Title = http.StatusText(code)
 	p.StatusCode = code
 	p.HTMX.Request.Enabled = false
+	p.TemplComponent = pages.Error()
 
 	if err = e.RenderPage(ctx, p); err != nil {
 		log.Ctx(ctx).Error("failed to render error page",

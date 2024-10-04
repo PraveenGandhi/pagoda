@@ -7,7 +7,8 @@ import (
 
 	"github.com/mikestefanello/pagoda/pkg/page"
 	"github.com/mikestefanello/pagoda/pkg/tests"
-	"github.com/mikestefanello/pagoda/templates"
+	"github.com/mikestefanello/pagoda/templates/layouts"
+	"github.com/mikestefanello/pagoda/templates/pages"
 
 	"github.com/stretchr/testify/require"
 
@@ -18,13 +19,13 @@ func TestServeCachedPage(t *testing.T) {
 	// Cache a page
 	ctx, rec := tests.NewContext(c.Web, "/cache")
 	p := page.New(ctx)
-	p.Layout = templates.LayoutHTMX
-	p.Name = templates.PageHome
 	p.Cache.Enabled = true
 	p.Cache.Expiration = time.Minute
 	p.StatusCode = http.StatusCreated
 	p.Headers["a"] = "b"
 	p.Headers["c"] = "d"
+	p.TemplLayout = layouts.HTMX
+	p.TemplComponent = pages.Home(nil)
 	err := c.TemplateRenderer.RenderPage(ctx, p)
 	output := rec.Body.Bytes()
 	require.NoError(t, err)

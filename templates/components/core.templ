@@ -1,0 +1,74 @@
+package components
+
+import (
+	"context"
+	"fmt"
+	"github.com/mikestefanello/pagoda/pkg/funcs"
+	"github.com/mikestefanello/pagoda/pkg/helpers"
+	"github.com/mikestefanello/pagoda/pkg/page"
+	"strings"
+)
+
+func Funcs(ctx context.Context) *funcs.Funcs {
+	return ctx.Value(helpers.TemplCtxKeyFuncs).(*funcs.Funcs)
+}
+
+func Page(ctx context.Context) *page.Page {
+	return ctx.Value(helpers.TemplCtxKeyPage).(*page.Page)
+}
+
+func NextPageLink(ctx context.Context) string {
+	return fmt.Sprintf("/?page=%d", Page(ctx).Pager.Page+1)
+}
+
+func PreviousPageLink(ctx context.Context) string {
+	return fmt.Sprintf("%s?page=%d", Page(ctx).Path, Page(ctx).Pager.Page-1)
+}
+
+templ MetaTags() {
+	if Page(ctx).Title != "" {
+		<title>{ Page(ctx).AppName } | { Page(ctx).Title } </title>
+	} else {
+		<title>{ Page(ctx).AppName } </title>
+	}
+	<link rel="icon" href={ Funcs(ctx).File("favicon.png") }/>
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+	if Page(ctx).Metatags.Description != "" {
+		<meta name="description" content={ Page(ctx).Metatags.Description }/>
+	}
+	if len(Page(ctx).Metatags.Keywords) > 0 {
+		<meta name="keywords" content={ strings.Join(Page(ctx).Metatags.Keywords, ",") }/>
+	}
+}
+
+templ CSS() {
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"/>
+}
+
+templ JS() {
+	<script src="https://unpkg.com/htmx.org@2.0.0/dist/htmx.min.js"></script>
+	<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+}
+
+templ Footer() {
+	if Page(ctx).CSRF != "" {
+		@templ.Raw(fmt.Sprintf(`<script id="csrf" type="application/json">%s</script>`, Page(ctx).CSRF))
+		<script>
+            document.body.addEventListener('htmx:configRequest', function(evt)  {
+                if (evt.detail.verb !== "get") {
+                    evt.detail.parameters['csrf'] = document.getElementById('csrf').textContent;
+                }
+            })
+        </script>
+	}
+	<script>
+        document.body.addEventListener('htmx:beforeSwap', function(evt) {
+            if (evt.detail.xhr.status >= 400){
+                evt.detail.shouldSwap = true;
+                evt.detail.target = htmx.find("body");
+            }
+        });
+    </script>
+}
