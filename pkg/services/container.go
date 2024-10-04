@@ -1,10 +1,16 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"github.com/mikestefanello/pagoda/pkg/db/migration"
+	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
+	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3/database"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/mikestefanello/backlite"
@@ -12,7 +18,6 @@ import (
 	"github.com/labstack/echo/v4"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mikestefanello/pagoda/config"
-	"github.com/mikestefanello/pagoda/pkg/db/sqlc"
 	"github.com/mikestefanello/pagoda/pkg/log"
 )
 
@@ -58,6 +63,7 @@ func NewContainer() *Container {
 	c.initWeb()
 	c.initCache()
 	c.initDatabase()
+	c.applyMigrations()
 	c.initAuth()
 	c.initTemplateRenderer()
 	c.initMail()
@@ -134,6 +140,41 @@ func (c *Container) initDatabase() {
 	}
 
 	c.Queries = sqlc.New(c.Database)
+}
+
+func (c *Container) applyMigrations() {
+	var err error
+	provider, err := goose.NewProvider(database.DialectSQLite3, c.Database, migration.Embed)
+	if err != nil {
+		panic(err)
+	}
+	// List migration sources the provider is aware of.
+	log.Default().Info("\n=== migration list ===")
+	sources := provider.ListSources()
+	for _, s := range sources {
+		log.Default().Info(fmt.Sprintf("%-3s %-2v %v\n", s.Type, s.Version, filepath.Base(s.Path)))
+	}
+
+	// List status of migrations before applying them.
+	ctx := context.Background()
+	stats, err := provider.Status(ctx)
+	if err != nil {
+		log.Default().Error(err.Error())
+	}
+	log.Default().Info("\n=== migration status ===")
+	for _, s := range stats {
+		log.Default().Info(fmt.Sprintf("%-3s %-2v %v\n", s.Source.Type, s.Source.Version, s.State))
+	}
+
+	log.Default().Info("\n=== log migration output  ===")
+	results, err := provider.Up(ctx)
+	if err != nil {
+		log.Default().Error(err.Error())
+	}
+	log.Default().Info("\n=== migration results  ===")
+	for _, r := range results {
+		log.Default().Info(fmt.Sprintf("%-3s %-2v done: %v\n", r.Source.Type, r.Source.Version, r.Duration))
+	}
 }
 
 // initAuth initializes the authentication client

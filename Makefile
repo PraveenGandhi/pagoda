@@ -1,3 +1,8 @@
+# Install air module for dev mode
+.PHONY: air-install
+air-install:
+	go install github.com/air-verse/air@latest
+
 # Install templ module
 .PHONY: templ-install
 templ-install:
@@ -8,11 +13,6 @@ templ-install:
 templ-gen:
 	templ fmt ./templates
 	templ generate
-
-# Create a new Ent entity
-.PHONY: ent-new
-ent-new:
-	go run entgo.io/ent/cmd/ent new $(name)
 
 # Run the application
 .PHONY: run

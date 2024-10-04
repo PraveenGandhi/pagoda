@@ -1,3 +1,6 @@
+-- +goose Up
+-- +goose StatementBegin
+
 create table backlite_tasks
 (
     id               text              not null primary key,
@@ -52,3 +55,15 @@ create table password_tokens
 create unique index users_email_key
     on users (email);
 
+
+
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+
+drop table backlite_tasks;
+drop table backlite_tasks_completed;
+drop table password_tokens;
+drop table users;
+-- +goose StatementEnd

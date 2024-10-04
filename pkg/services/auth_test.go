@@ -96,7 +96,7 @@ func TestAuthClient_DeletePasswordTokens(t *testing.T) {
 	count, err := c.Queries.Test_CountPasswordTokensByUser(context.Background(), usr.ID)
 
 	require.NoError(t, err)
-	assert.Equal(t, 0, count)
+	assert.Equal(t, int64(0), count)
 }
 
 func TestAuthClient_RandomToken(t *testing.T) {
