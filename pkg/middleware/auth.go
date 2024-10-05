@@ -19,12 +19,14 @@ func LoadAuthenticatedUser(authClient *services.AuthClient) echo.MiddlewareFunc 
 		return func(c echo.Context) error {
 			u, err := authClient.GetAuthenticatedUser(c)
 			switch err.(type) {
-			/*case *ent.NotFoundError:
-			log.Ctx(c).Warn("auth user not found")*/
 			case services.NotAuthenticatedError:
 			case nil:
 				c.Set(context.AuthenticatedUserKey, u)
 			default:
+				if err.Error() == "sql: no rows in result set" {
+					log.Ctx(c).Warn("auth user not found")
+					return next(c)
+				}
 				return echo.NewHTTPError(
 					http.StatusInternalServerError,
 					fmt.Sprintf("error querying for authenticated user: %v", err),
